@@ -97,6 +97,17 @@ async function run() {
     });
 
     //order
+    app.get("/order", verifyJWT, async (req, res) =>{
+      const customer = req.query.customer;
+      const decodedEmail = req.decoded.email;
+      if(customer === decodedEmail){
+        const query = {customerEmail: customer};
+        const order = await orderCollection.find(query).toArray();
+        return res.send(order)
+      }else{
+        return res.status(403).send({ message: "Forbidden access" });
+      }
+    })
     app.post("/order",verifyJWT, async(req, res) => {
       const order = req.body;
       const result = await orderCollection.insertOne(order);
