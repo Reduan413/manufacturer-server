@@ -75,7 +75,7 @@ async function run() {
 
     //products
     //get
-    app.get("/products", async(req,res) =>{
+    app.get("/product", async(req,res) =>{
       const query = {};
       const cursor = productCollection.find(query);
       const products = await cursor.toArray();
@@ -83,7 +83,7 @@ async function run() {
     })
 
     //update
-    app.patch("/products/:id",verifyJWT, async(req, res) =>{
+    app.patch("/product/:id",verifyJWT, async(req, res) =>{
       const id = req.params.id;
       const product = req.body;
       const filter = {_id: ObjectId(id)};
