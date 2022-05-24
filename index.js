@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -37,6 +37,7 @@ async function run() {
     await client.connect();
     const userCollection = client.db("sa_manufacturer").collection("user");
     const productCollection = client.db("sa_manufacturer").collection("products");
+    const orderCollection = client.db("sa_manufacturer").collection("orders");
     //user
     //get user
     app.get("/user",verifyJWT, async(req,res) => {
@@ -79,6 +80,27 @@ async function run() {
       const cursor = productCollection.find(query);
       const products = await cursor.toArray();
       res.send(products);
+    })
+
+    //update
+    app.patch("/products/:id",verifyJWT, async(req, res) =>{
+      const id = req.params.id;
+      const product = req.body;
+      const filter = {_id: ObjectId(id)};
+      const updateDoc = {
+        $set: {
+          stock: product.stock,
+        },
+      };
+      const updateProduct = await productCollection.updateOne(filter, updateDoc);
+      res.send(updateProduct);
+    });
+
+    //order
+    app.post("/order",verifyJWT, async(req, res) => {
+      const order = req.body;
+      const result = await orderCollection.insertOne(order);
+      res.send(result);
     })
   } finally {
     // await client.close();
