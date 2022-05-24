@@ -36,6 +36,7 @@ async function run() {
   try {
     await client.connect();
     const userCollection = client.db("sa_manufacturer").collection("user");
+    const productCollection = client.db("sa_manufacturer").collection("products");
     //user
     //get user
     app.get("/user",verifyJWT, async(req,res) => {
@@ -69,6 +70,15 @@ async function run() {
       };
       const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
+    })
+
+    //products
+    //get
+    app.get("/products", async(req,res) =>{
+      const query = {};
+      const cursor = productCollection.find(query);
+      const products = await cursor.toArray();
+      res.send(products);
     })
   } finally {
     // await client.close();
