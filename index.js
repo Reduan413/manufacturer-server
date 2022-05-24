@@ -44,6 +44,11 @@ async function run() {
       const users = await userCollection.find().toArray();
       res.send(users);
     })
+    app.get("/user/:email", async(req,res) => {
+      const email = req.params.email;
+      const users = await userCollection.findOne({ email: email });
+      res.send(users);
+    })
     //put user
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
@@ -61,6 +66,23 @@ async function run() {
       );
       res.send({ result, token });
     });
+    app.patch("/user/:id", verifyJWT, async (req, res) =>{
+      const id = req.params.id;
+      const user= req.body;
+      const filter = {_id: ObjectId(id)};
+      const updateDoc = {
+        $set: {
+          email: user.email,
+          userName: user.name,
+          address: user.address,
+          company: user.company,
+          phone: user.phone,
+          image: user.image,
+        },
+      };
+      const updateUser = await userCollection.updateOne(filter, updateDoc);
+      res.send(updateDoc)
+    })
     //make admin
     app.put("/user/admin/:email", verifyJWT, async (req,res) =>{
       const email = req.params.email;
