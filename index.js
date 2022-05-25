@@ -107,6 +107,14 @@ async function run() {
       res.send(products);
     })
 
+    app.get("/product/:id", async(req,res) =>{
+      const id = req.params.id;
+      const query = {_id: ObjectId(id)};
+      const cursor = productCollection.find(query);
+      const product = await cursor.toArray();
+      res.send(product);
+    })
+
     //post
     app.post("/product", verifyJWT, async(req,res) =>{
       const product = req.body;
@@ -120,13 +128,19 @@ async function run() {
       const product = req.body;
       const filter = {_id: ObjectId(id)};
       const updateDoc = {
-        $set: {
-          stock: product.stock,
-        },
+        $set: product,
       };
       const updateProduct = await productCollection.updateOne(filter, updateDoc);
       res.send(updateProduct);
     });
+
+    //delete
+    app.delete("/product/:id", verifyJWT, async(req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productCollection.deleteOne(query);
+      res.send(result);
+    })
 
     //order
     app.get("/order", verifyJWT, async (req, res) =>{
