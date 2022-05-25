@@ -38,6 +38,7 @@ async function run() {
     const userCollection = client.db("sa_manufacturer").collection("user");
     const productCollection = client.db("sa_manufacturer").collection("products");
     const orderCollection = client.db("sa_manufacturer").collection("orders");
+    const reviewCollection = client.db("sa_manufacturer").collection("review");
     //user
     //get user
     app.get("/user",verifyJWT, async(req,res) => {
@@ -70,6 +71,7 @@ async function run() {
       const id = req.params.id;
       const user= req.body;
       const filter = {_id: ObjectId(id)};
+      const options = { upsert: true };
       const updateDoc = {
         $set: {
           email: user.email,
@@ -133,6 +135,13 @@ async function run() {
     app.post("/order",verifyJWT, async(req, res) => {
       const order = req.body;
       const result = await orderCollection.insertOne(order);
+      res.send(result);
+    })
+
+    //review
+    app.post("/review",verifyJWT, async(req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.insertOne(review);
       res.send(result);
     })
   } finally {
