@@ -32,24 +32,40 @@ function verifyJWT(req, res, next) {
     next();
   });
 }
+
 async function run() {
   try {
     await client.connect();
     const userCollection = client.db("sa_manufacturer").collection("user");
-    const productCollection = client.db("sa_manufacturer").collection("products");
+    const productCollection = client
+      .db("sa_manufacturer")
+      .collection("products");
     const orderCollection = client.db("sa_manufacturer").collection("orders");
     const reviewCollection = client.db("sa_manufacturer").collection("review");
+
+    //verify admin
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email;
+      const requesterAccount = await userCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin") {
+        next();
+      } else {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
+    };
     //user
     //get user
-    app.get("/user",verifyJWT, async(req,res) => {
+    app.get("/user", verifyJWT, async (req, res) => {
       const users = await userCollection.find().toArray();
       res.send(users);
-    })
-    app.get("/user/:email", async(req,res) => {
+    });
+    app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
       const users = await userCollection.findOne({ email: email });
       res.send(users);
-    })
+    });
     //put user
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
@@ -67,10 +83,17 @@ async function run() {
       );
       res.send({ result, token });
     });
-    app.patch("/user/:id", verifyJWT, async (req, res) =>{
+    //delete
+    app.delete("/user/:id", verifyJWT,verifyAdmin, async (req, res) => {
       const id = req.params.id;
-      const user= req.body;
-      const filter = {_id: ObjectId(id)};
+      const query = { _id: ObjectId(id) };
+      const result = await userCollection.deleteOne(query);
+      res.send(result);
+    });
+    app.patch("/user/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const user = req.body;
+      const filter = { _id: ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
         $set: {
@@ -83,99 +106,109 @@ async function run() {
         },
       };
       const updateUser = await userCollection.updateOne(filter, updateDoc);
-      res.send(updateDoc)
-    })
-    //make admin
-    app.put("/user/admin/:email", verifyJWT, async (req,res) =>{
+      res.send(updateDoc);
+    });
+
+    app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email)
-      const filter = { email: email};
+      const user = await userCollection.findOne({ email: email });
+      const isAdmin = user.role == "admin";
+      res.send({ admin: isAdmin });
+    });
+    //make admin
+    app.put("/user/admin/:email", verifyJWT,verifyAdmin, async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      const filter = { email: email };
       const updateDoc = {
-        $set: { role: "admin"},
+        $set: { role: "admin" },
       };
       const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
-    })
+    });
 
     //products
     //get
-    app.get("/product", async(req,res) =>{
+    app.get("/product", async (req, res) => {
       const query = {};
       const cursor = productCollection.find(query);
       const result = await cursor.toArray();
       const products = result.reverse();
       res.send(products);
-    })
+    });
 
-    app.get("/product/:id", async(req,res) =>{
+    app.get("/product/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
-      const query = {_id: ObjectId(id)};
+      const query = { _id: ObjectId(id) };
       const cursor = productCollection.find(query);
       const product = await cursor.toArray();
       res.send(product);
-    })
+    });
 
     //post
-    app.post("/product", verifyJWT, async(req,res) =>{
+    app.post("/product", verifyJWT, verifyAdmin, async (req, res) => {
       const product = req.body;
       const result = await productCollection.insertOne(product);
       res.send(result);
-    })
+    });
 
     //update
-    app.patch("/product/:id",verifyJWT, async(req, res) =>{
+    app.patch("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const product = req.body;
-      const filter = {_id: ObjectId(id)};
+      const filter = { _id: ObjectId(id) };
       const updateDoc = {
         $set: product,
       };
-      const updateProduct = await productCollection.updateOne(filter, updateDoc);
+      const updateProduct = await productCollection.updateOne(
+        filter,
+        updateDoc
+      );
       res.send(updateProduct);
     });
 
     //delete
-    app.delete("/product/:id", verifyJWT, async(req, res) => {
+    app.delete("/product/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await productCollection.deleteOne(query);
       res.send(result);
-    })
+    });
 
     //order
-    app.get("/order", verifyJWT, async (req, res) =>{
+    app.get("/order", verifyJWT, async (req, res) => {
       const customer = req.query.customer;
       const decodedEmail = req.decoded.email;
-      if(customer === decodedEmail){
-        const query = {customerEmail: customer};
+      if (customer === decodedEmail) {
+        const query = { customerEmail: customer };
         const result = await orderCollection.find(query).toArray();
         const order = result.reverse();
-        return res.send(order)
-      }else{
+        return res.send(order);
+      } else {
         return res.status(403).send({ message: "Forbidden access" });
       }
-    })
-    app.post("/order",verifyJWT, async(req, res) => {
+    });
+    app.post("/order", verifyJWT, async (req, res) => {
       const order = req.body;
       const result = await orderCollection.insertOne(order);
       res.send(result);
-    })
-    app.get("/allorder", verifyJWT, async(req, res) =>{
+    });
+    app.get("/allorder", verifyJWT, verifyAdmin, async (req, res) => {
       const allorder = await orderCollection.find().toArray();
       res.send(allorder);
-    })
+    });
 
     //review
-    app.get("/review", async(req,res) => {
+    app.get("/review", async (req, res) => {
       const result = await reviewCollection.find().toArray();
       const reviews = result.reverse();
       res.send(reviews);
-    })
-    app.post("/review",verifyJWT, async(req, res) => {
+    });
+    app.post("/review", verifyJWT, async (req, res) => {
       const review = req.body;
       const result = await reviewCollection.insertOne(review);
       res.send(result);
-    })
+    });
   } finally {
     // await client.close();
   }
