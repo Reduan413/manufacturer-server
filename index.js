@@ -139,6 +139,11 @@ async function run() {
     })
 
     //review
+    app.get("/review", async(req,res) => {
+      const result = await reviewCollection.find().toArray();
+      const reviews = result.reverse();
+      res.send(reviews);
+    })
     app.post("/review",verifyJWT, async(req, res) => {
       const review = req.body;
       const result = await reviewCollection.insertOne(review);
