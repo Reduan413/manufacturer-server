@@ -102,8 +102,16 @@ async function run() {
     app.get("/product", async(req,res) =>{
       const query = {};
       const cursor = productCollection.find(query);
-      const products = await cursor.toArray();
+      const result = await cursor.toArray();
+      const products = result.reverse();
       res.send(products);
+    })
+
+    //post
+    app.post("/product", verifyJWT, async(req,res) =>{
+      const product = req.body;
+      const result = await productCollection.insertOne(product);
+      res.send(result);
     })
 
     //update
@@ -126,7 +134,8 @@ async function run() {
       const decodedEmail = req.decoded.email;
       if(customer === decodedEmail){
         const query = {customerEmail: customer};
-        const order = await orderCollection.find(query).toArray();
+        const result = await orderCollection.find(query).toArray();
+        const order = result.reverse();
         return res.send(order)
       }else{
         return res.status(403).send({ message: "Forbidden access" });
@@ -136,6 +145,10 @@ async function run() {
       const order = req.body;
       const result = await orderCollection.insertOne(order);
       res.send(result);
+    })
+    app.get("/allorder", verifyJWT, async(req, res) =>{
+      const allorder = await orderCollection.find().toArray();
+      res.send(allorder);
     })
 
     //review
