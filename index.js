@@ -242,6 +242,12 @@ async function run() {
       const updateOrder = await orderCollection.updateOne(filter, updateDoc);
       res.send(updateOrder);
     });
+    app.delete("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await orderCollection.deleteOne(query);
+      res.send(result);
+    });
     app.get("/allorder", verifyJWT, verifyAdmin, async (req, res) => {
       const allorder = await orderCollection.find().toArray();
       res.send(allorder);
