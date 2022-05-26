@@ -4,6 +4,8 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -42,6 +44,21 @@ async function run() {
       .collection("products");
     const orderCollection = client.db("sa_manufacturer").collection("orders");
     const reviewCollection = client.db("sa_manufacturer").collection("review");
+
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const order = req.body;
+      const price = order.price;
+      const amount = price * 100;
+
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "bdt",
+        payment_method_types: ["card"],
+      });
+      //sendPaymentConfirmationEmail(service);
+      res.send({ clientSecret: paymentIntent.client_secret });
+    });
 
     //verify admin
     const verifyAdmin = async (req, res, next) => {
@@ -84,7 +101,7 @@ async function run() {
       res.send({ result, token });
     });
     //delete
-    app.delete("/user/:id", verifyJWT,verifyAdmin, async (req, res) => {
+    app.delete("/user/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await userCollection.deleteOne(query);
@@ -116,7 +133,7 @@ async function run() {
       res.send({ admin: isAdmin });
     });
     //make admin
-    app.put("/user/admin/:email", verifyJWT,verifyAdmin, async (req, res) => {
+    app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
       const email = req.params.email;
       console.log(email);
       const filter = { email: email };
@@ -130,11 +147,25 @@ async function run() {
     //products
     //get
     app.get("/product", async (req, res) => {
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
       const query = {};
       const cursor = productCollection.find(query);
-      const result = await cursor.toArray();
-      const products = result.reverse();
+      let products;
+      if (page || size) {
+        products = await cursor
+          .skip(page * size)
+          .limit(size)
+          .toArray();
+      } else {
+        products = await cursor.toArray();
+      }
       res.send(products);
+    });
+
+    app.get("/productCount", async (req, res) => {
+      const count = await productCollection.estimatedDocumentCount();
+      res.send({ count });
     });
 
     app.get("/product/:id", verifyJWT, async (req, res) => {
@@ -188,10 +219,28 @@ async function run() {
         return res.status(403).send({ message: "Forbidden access" });
       }
     });
+
+    app.get("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const order = await orderCollection.findOne(query);
+      res.send(order);
+    });
     app.post("/order", verifyJWT, async (req, res) => {
       const order = req.body;
       const result = await orderCollection.insertOne(order);
       res.send(result);
+    });
+    //update
+    app.patch("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const order = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updateDoc = {
+        $set: order,
+      };
+      const updateOrder = await orderCollection.updateOne(filter, updateDoc);
+      res.send(updateOrder);
     });
     app.get("/allorder", verifyJWT, verifyAdmin, async (req, res) => {
       const allorder = await orderCollection.find().toArray();
