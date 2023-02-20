@@ -150,7 +150,9 @@ async function run() {
       const page = parseInt(req.query.page);
       const size = parseInt(req.query.size);
       const query = {};
+      console.log("db :" + productCollection)
       const cursor = productCollection.find(query);
+      console.log("cursor :" +cursor)
       let products;
       if (page || size) {
         products = await cursor
@@ -159,7 +161,9 @@ async function run() {
           .toArray();
       } else {
         products = await cursor.toArray();
+
       }
+      console.log("products :"+ products)
       res.send(products);
     });
 
