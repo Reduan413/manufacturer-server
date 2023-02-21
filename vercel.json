@@ -10,7 +10,7 @@
     {
       "src": "/product",
       "dest": "index.js",
-      "methods": ["GEt"]
+      "methods": ["GET"]
     }
   ]
 }
