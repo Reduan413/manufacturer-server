@@ -12,7 +12,8 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.r4qaf.mongodb.net/?retryWrites=true&w=majority`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.r4qaf.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://SA_Admin:XKXZn4oroeQOYkGZ@cluster0.r4qaf.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -150,9 +151,9 @@ async function run() {
       const page = parseInt(req.query.page);
       const size = parseInt(req.query.size);
       const query = {};
-      console.log("db :" + productCollection)
+      // console.log("db :" + productCollection)
       const cursor = productCollection.find(query);
-      console.log("cursor :" +cursor)
+      // console.log("cursor :" +cursor)
       let products;
       if (page || size) {
         products = await cursor
@@ -163,7 +164,7 @@ async function run() {
         products = await cursor.toArray();
 
       }
-      console.log("products :"+ products)
+      // console.log("products :"+ products)
       res.send(products);
     });
 
