@@ -276,7 +276,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("Look manufature server! ");
+  res.send("Look manufature server! Vercel");
 });
 
 app.listen(port, () => {
